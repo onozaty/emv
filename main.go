@@ -66,40 +66,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	config, err := loadConfig(configPath)
+	err := run(configPath, flag.Args())
 	if err != nil {
 		fmt.Println("\nError: ", err)
 		os.Exit(1)
-	}
-
-	values, err := values(flag.Args(), config.Values)
-	if err != nil {
-		fmt.Println("\nError: ", err)
-		os.Exit(1)
-	}
-
-	for _, target := range config.Targets {
-
-		replaceRules, err := buildReplaceRules(target.Embeddeds, values)
-		if err != nil {
-			fmt.Println("\nError: ", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("\nEmbedded values: \n")
-		for _, replaceRule := range replaceRules {
-			fmt.Printf("  %s\n", replaceRule.Replacement)
-		}
-
-		fmt.Printf("Files: \n")
-		for _, file := range target.Files {
-			if err := replace(file, replaceRules); err != nil {
-				fmt.Println("\nError: ", err)
-				os.Exit(1)
-			}
-
-			fmt.Printf("  %s\n", file)
-		}
 	}
 }
 
@@ -110,11 +80,56 @@ func usage(w io.Writer) {
 	flag.PrintDefaults()
 }
 
-func replace(file string, replaceRules []ReplaceRule) error {
+func run(configPath string, args []string) error {
+
+	config, err := loadConfig(configPath)
+	if err != nil {
+		return err
+	}
+
+	values, err := values(flag.Args(), config.Values)
+	if err != nil {
+		return err
+	}
+
+	for _, target := range config.Targets {
+
+		replaceRules, err := buildReplaceRules(target.Embeddeds, values)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("\nEmbedded values: \n")
+		for _, replaceRule := range replaceRules {
+			fmt.Printf("  %s\n", replaceRule.Replacement)
+		}
+
+		fmt.Printf("Files: ([C] Changed, [-] Not Changed)\n")
+		for _, file := range target.Files {
+			replaced, err := replace(file, replaceRules)
+			if err != nil {
+				return err
+			}
+
+			var changeFlag string
+			if replaced {
+				changeFlag = "[C]"
+			} else {
+				changeFlag = "[-]"
+			}
+
+			fmt.Printf("  %s %s\n", changeFlag, file)
+		}
+	}
+
+	return nil
+}
+
+func replace(file string, replaceRules []ReplaceRule) (bool, error) {
 
 	content, err := os.ReadFile(file)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	before := string(content)
@@ -124,11 +139,11 @@ func replace(file string, replaceRules []ReplaceRule) error {
 		replaced = replaceRule.Regex.ReplaceAllString(replaced, replaceRule.Replacement)
 	}
 
-	if before != replaced {
-		return fmt.Errorf("could not find the embedding position : %s", file)
+	if before == replaced {
+		return false, nil
 	}
 
-	return os.WriteFile(file, []byte(before), 0666)
+	return true, os.WriteFile(file, []byte(replaced), 0666)
 }
 
 func buildReplaceRules(embeddeds []Embedded, values map[string]string) ([]ReplaceRule, error) {
