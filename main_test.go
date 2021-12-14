@@ -1,11 +1,118 @@
 package main
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 )
+
+func TestRun(t *testing.T) {
+
+	args := []string{
+		"3.4.1",
+		"2021-12-24",
+	}
+
+	targetFile1 := createTempFile(t, `version=v1.0.0, date=2021-11-23`)
+	defer os.Remove(targetFile1)
+	targetFile2 := createTempFile(t, `version=v1.0.0, version=v2.2.1`)
+	defer os.Remove(targetFile2)
+	targetFile3 := createTempFile(t, `
+<version>
+  <major>1</major>
+  <minor>0</minor>
+  <revision>2</revision>
+</version>`)
+	defer os.Remove(targetFile3)
+
+	config := fmt.Sprintf(`
+	{
+		"values" : [
+			{ 
+				"name" : "version",
+				"regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+			},
+			{
+				"name" : "date"
+			}
+		],
+		"targets" : [
+			{
+				"files" : [
+					"%s",
+					"%s"
+				],
+				"embeddeds" : [
+					{
+						"regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						"replacement" : "version=v{{.version}}"
+					},
+					{
+						"regex" : "date=[0-9\\-]+",
+						"replacement" : "date={{.date}}"
+					}
+				]
+			},
+			{
+				"files" : [
+					"%s"
+				],
+				"embeddeds" : [
+					{
+						"regex" : "<major>[0-9]+</major>",
+						"replacement" : "<major>{{.major}}</major>"
+					},
+					{
+						"regex" : "<minor>[0-9]+</minor>",
+						"replacement" : "<minor>{{.minor}}</minor>"
+					},
+					{
+						"regex" : "<revision>[0-9]+</revision>",
+						"replacement" : "<revision>{{.revision}}</revision>"
+					}
+				]
+			}
+		]
+	}`,
+		strings.ReplaceAll(targetFile1, `\`, `\\`),
+		strings.ReplaceAll(targetFile2, `\`, `\\`),
+		strings.ReplaceAll(targetFile3, `\`, `\\`))
+
+	configFile := createTempFile(t, config)
+	defer os.Remove(configFile)
+
+	err := run(configFile, args)
+	if err != nil {
+		t.Fatalf("failed test\n%+v", err)
+	}
+
+	{
+		before := readString(t, targetFile1)
+		if before != `version=v3.4.1, date=2021-12-24` {
+			t.Fatal("failed test\n", before)
+		}
+	}
+	{
+		before := readString(t, targetFile2)
+		if before != `version=v3.4.1, version=v3.4.1` {
+			t.Fatal("failed test\n", before)
+		}
+	}
+	{
+		before := readString(t, targetFile3)
+		if before != `
+<version>
+  <major>3</major>
+  <minor>4</minor>
+  <revision>1</revision>
+</version>` {
+			t.Fatal("failed test\n", before)
+		}
+	}
+}
 
 func TestReplace(t *testing.T) {
 
@@ -27,7 +134,7 @@ func TestReplace(t *testing.T) {
 
 	result, err := replace(file, replaceRules)
 	if err != nil {
-		t.Fatal("failed test\n", err)
+		t.Fatalf("failed test\n%+v", err)
 	}
 
 	if !result {
@@ -60,7 +167,7 @@ func TestBuildReplaceRules(t *testing.T) {
 
 	result, err := buildReplaceRules(embeddeds, values)
 	if err != nil {
-		t.Fatal("failed test\n", err)
+		t.Fatalf("failed test\n%+v", err)
 	}
 
 	expect := []ReplaceRule{
@@ -90,7 +197,7 @@ func TestExecuteTemplate(t *testing.T) {
 
 	result, err := executeTemplate(templStr, values)
 	if err != nil {
-		t.Fatal("failed test\n", err)
+		t.Fatalf("failed test\n%+v", err)
 	}
 
 	if result != "val1=a, val2=b" {
@@ -116,7 +223,7 @@ func TestValues(t *testing.T) {
 
 	result, err := values(args, valueConfigs)
 	if err != nil {
-		t.Fatal("failed test\n", err)
+		t.Fatalf("failed test\n%+v", err)
 	}
 
 	expect := map[string]string{
@@ -186,7 +293,7 @@ func TestLoadConfig(t *testing.T) {
 
 	result, err := loadConfig(file)
 	if err != nil {
-		t.Fatal("failed test\n", err)
+		t.Fatalf("failed test\n%+v", err)
 	}
 
 	expect := &Config{
@@ -241,7 +348,7 @@ func TestLoadConfig(t *testing.T) {
 
 func createTempFile(t *testing.T, content string) string {
 
-	tempFile, err := os.CreateTemp("", "csv")
+	tempFile, err := os.CreateTemp("", "")
 	if err != nil {
 		t.Fatal("craete file failed\n", err)
 	}

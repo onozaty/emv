@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
 )
 
@@ -87,7 +88,7 @@ func run(configPath string, args []string) error {
 		return err
 	}
 
-	values, err := values(flag.Args(), config.Values)
+	values, err := values(args, config.Values)
 	if err != nil {
 		return err
 	}
@@ -104,7 +105,7 @@ func run(configPath string, args []string) error {
 			fmt.Printf("  %s\n", replaceRule.Replacement)
 		}
 
-		fmt.Printf("Files: ([C] Changed, [-] Not Changed)\n")
+		fmt.Printf("Files ([U] Updated, [-] None): \n")
 		for _, file := range target.Files {
 			replaced, err := replace(file, replaceRules)
 			if err != nil {
@@ -113,7 +114,7 @@ func run(configPath string, args []string) error {
 
 			var changeFlag string
 			if replaced {
-				changeFlag = "[C]"
+				changeFlag = "[U]"
 			} else {
 				changeFlag = "[-]"
 			}
@@ -129,7 +130,7 @@ func replace(file string, replaceRules []ReplaceRule) (bool, error) {
 
 	content, err := os.ReadFile(file)
 	if err != nil {
-		return false, err
+		return false, errors.WithStack(err)
 	}
 
 	before := string(content)
@@ -154,7 +155,7 @@ func buildReplaceRules(embeddeds []Embedded, values map[string]string) ([]Replac
 
 		regexp, err := regexp.Compile(emembedded.RegexStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		replacement, err := executeTemplate(emembedded.Replacement, values)
@@ -175,12 +176,12 @@ func executeTemplate(templStr string, values map[string]string) (string, error) 
 
 	templ, err := template.New("template").Parse(templStr)
 	if err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	w := &strings.Builder{}
 	if err := templ.Execute(w, values); err != nil {
-		return "", err
+		return "", errors.WithStack(err)
 	}
 
 	return w.String(), nil
@@ -191,7 +192,7 @@ func values(args []string, valueConfigs []Value) (map[string]string, error) {
 	values := map[string]string{}
 
 	if len(args) != len(valueConfigs) {
-		return nil, fmt.Errorf("argument must be %d arguments", len(valueConfigs))
+		return nil, errors.Errorf("argument must be %d arguments", len(valueConfigs))
 	}
 
 	for i, valueConfig := range valueConfigs {
@@ -199,12 +200,12 @@ func values(args []string, valueConfigs []Value) (map[string]string, error) {
 
 		regexp, err := regexp.Compile(valueConfig.RegexStr)
 		if err != nil {
-			return nil, err
+			return nil, errors.WithStack(err)
 		}
 
 		match := regexp.FindStringSubmatch(args[i])
 		if match == nil {
-			return nil, fmt.Errorf("%s does not match the regular expression: %s", args[i], valueConfig.RegexStr)
+			return nil, errors.Errorf("%s does not match the regular expression: %s", args[i], valueConfig.RegexStr)
 		}
 
 		for i, name := range regexp.SubexpNames() {
@@ -221,13 +222,13 @@ func loadConfig(path string) (*Config, error) {
 
 	content, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	var config Config
 	err = json.Unmarshal(content, &config)
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
 	}
 
 	return &config, nil
