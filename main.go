@@ -48,7 +48,7 @@ func main() {
 	var configPath string
 	var help bool
 
-	flag.StringVarP(&configPath, "config", "c", "emv.config", "Config file path")
+	flag.StringVarP(&configPath, "config", "c", "emv.json", "Config file path")
 	flag.BoolVarP(&help, "help", "h", false, "Help")
 	flag.CommandLine.SortFlags = false
 	flag.Usage = func() {
