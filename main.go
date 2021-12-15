@@ -86,7 +86,7 @@ func run(configPath string, args []string, w io.Writer) error {
 
 	config, err := loadConfig(configPath)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to load the config file")
 	}
 
 	values, err := values(args, config.Values)
@@ -156,12 +156,12 @@ func buildReplaceRules(embeddeds []Embedded, values map[string]string) ([]Replac
 
 		regexp, err := regexp.Compile(emembedded.RegexStr)
 		if err != nil {
-			return nil, errors.WithStack(err)
+			return nil, errors.Wrapf(err, "'%s' in embeddeds.regex is an invalid value", emembedded.RegexStr)
 		}
 
 		replacement, err := executeTemplate(emembedded.Replacement, values)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "'%s' in embeddeds.replacement is an invalid value", emembedded.Replacement)
 		}
 
 		replaceRules = append(replaceRules, ReplaceRule{
@@ -199,19 +199,22 @@ func values(args []string, valueConfigs []Value) (map[string]string, error) {
 	for i, valueConfig := range valueConfigs {
 		values[valueConfig.Name] = args[i]
 
-		regexp, err := regexp.Compile(valueConfig.RegexStr)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
+		if valueConfig.RegexStr != "" {
 
-		match := regexp.FindStringSubmatch(args[i])
-		if match == nil {
-			return nil, errors.Errorf("%s does not match the regular expression: %s", args[i], valueConfig.RegexStr)
-		}
+			regexp, err := regexp.Compile(valueConfig.RegexStr)
+			if err != nil {
+				return nil, errors.Wrapf(err, "'%s' in values.regex is an invalid value", valueConfig.RegexStr)
+			}
 
-		for i, name := range regexp.SubexpNames() {
-			if i != 0 && name != "" {
-				values[name] = match[i]
+			match := regexp.FindStringSubmatch(args[i])
+			if match == nil {
+				return nil, errors.Errorf("'%s' does not match the regular expression: %s", args[i], valueConfig.RegexStr)
+			}
+
+			for i, name := range regexp.SubexpNames() {
+				if i != 0 && name != "" {
+					values[name] = match[i]
+				}
 			}
 		}
 	}
@@ -230,6 +233,10 @@ func loadConfig(path string) (*Config, error) {
 	err = json.Unmarshal(content, &config)
 	if err != nil {
 		return nil, errors.WithStack(err)
+	}
+
+	if len(config.Targets) == 0 || len(config.Values) == 0 {
+		return nil, errors.Errorf("invalid format")
 	}
 
 	return &config, nil
