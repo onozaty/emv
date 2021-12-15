@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -84,7 +85,8 @@ func TestRun(t *testing.T) {
 	configFile := createTempFile(t, config)
 	defer os.Remove(configFile)
 
-	err := run(configFile, args)
+	w := &bytes.Buffer{}
+	err := run(configFile, args, w)
 	if err != nil {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -112,6 +114,36 @@ func TestRun(t *testing.T) {
 			t.Fatal("failed test\n", before)
 		}
 	}
+
+	output := w.String()
+	// Embedded values
+	if !strings.Contains(output, "version=v3.4.1") {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, "date=2021-12-24") {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, "<major>3</major>") {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, "<minor>4</minor>") {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, "<revision>1</revision>") {
+		t.Fatal("failed test\n", output)
+	}
+
+	// Files
+	if !strings.Contains(output, fmt.Sprintf(`[U] %s`, targetFile1)) {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, fmt.Sprintf(`[U] %s`, targetFile2)) {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, fmt.Sprintf(`[U] %s`, targetFile3)) {
+		t.Fatal("failed test\n", output)
+	}
+
 }
 
 func TestReplace(t *testing.T) {

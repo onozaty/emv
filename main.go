@@ -63,11 +63,11 @@ func main() {
 	}
 
 	if len(flag.Args()) == 0 {
-		flag.Usage()
+		usage(os.Stderr)
 		os.Exit(1)
 	}
 
-	err := run(configPath, flag.Args())
+	err := run(configPath, flag.Args(), os.Stdout)
 	if err != nil {
 		fmt.Println("\nError: ", err)
 		os.Exit(1)
@@ -76,12 +76,13 @@ func main() {
 
 func usage(w io.Writer) {
 
-	fmt.Printf("emv v%s (%s)\n\n", Version, Commit)
-	fmt.Fprint(w, "Usage: emv [-c CONFIG] VALUE1 VALUE2 ... \n\nFlags\n")
+	fmt.Fprintf(w, "emv v%s (%s)\n\n", Version, Commit)
+	fmt.Fprintf(w, "Usage: emv [-c CONFIG] VALUE1 VALUE2 ... \n\nFlags\n")
+	flag.CommandLine.SetOutput(w)
 	flag.PrintDefaults()
 }
 
-func run(configPath string, args []string) error {
+func run(configPath string, args []string, w io.Writer) error {
 
 	config, err := loadConfig(configPath)
 	if err != nil {
@@ -100,12 +101,12 @@ func run(configPath string, args []string) error {
 			return err
 		}
 
-		fmt.Printf("\nEmbedded values: \n")
+		fmt.Fprintf(w, "\nEmbedded values: \n")
 		for _, replaceRule := range replaceRules {
-			fmt.Printf("  %s\n", replaceRule.Replacement)
+			fmt.Fprintf(w, "  %s\n", replaceRule.Replacement)
 		}
 
-		fmt.Printf("Files ([U] Updated, [-] None): \n")
+		fmt.Fprintf(w, "Files ([U] Updated, [-] None): \n")
 		for _, file := range target.Files {
 			replaced, err := replace(file, replaceRules)
 			if err != nil {
@@ -119,7 +120,7 @@ func run(configPath string, args []string) error {
 				changeFlag = "[-]"
 			}
 
-			fmt.Printf("  %s %s\n", changeFlag, file)
+			fmt.Fprintf(w, "  %s %s\n", changeFlag, file)
 		}
 	}
 
