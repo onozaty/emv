@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"strings"
@@ -88,7 +89,7 @@ func TestRun(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, configFile, w)
 	if err != nil {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -188,7 +189,7 @@ func TestRun_unchanged(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	if err != nil {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -221,6 +222,79 @@ func TestRun_unchanged(t *testing.T) {
 	}
 }
 
+func TestRun_targetDir(t *testing.T) {
+
+	args := []string{
+		"3.4.1",
+	}
+
+	targetFile1 := createTempFile(t, `version=v1.0.0`)
+	defer os.Remove(targetFile1)
+	targetFile2 := createTempFile(t, `version=v2.0.0`)
+	defer os.Remove(targetFile2)
+
+	config := fmt.Sprintf(`
+	{
+		"values" : [
+			{ 
+				"name" : "version",
+				"regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+			}
+		],
+		"targets" : [
+			{
+				"files" : [
+					"%s",
+					"%s"
+				],
+				"embeddeds" : [
+					{
+						"regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						"replacement" : "version=v{{.version}}"
+					}
+				]
+			}
+		]
+	}`,
+		strings.ReplaceAll(filepath.Base(targetFile1), `\`, `\\`),
+		strings.ReplaceAll(targetFile2, `\`, `\\`))
+
+	configFile := createTempFile(t, config)
+	defer os.Remove(configFile)
+
+	w := &bytes.Buffer{}
+	err := run(configFile, args, filepath.Dir(targetFile1), w)
+	if err != nil {
+		t.Fatalf("failed test\n%+v", err)
+	}
+
+	{
+		before := readString(t, targetFile1)
+		if before != `version=v3.4.1` {
+			t.Fatal("failed test\n", before)
+		}
+	}
+	{
+		before := readString(t, targetFile2)
+		if before != `version=v3.4.1` {
+			t.Fatal("failed test\n", before)
+		}
+	}
+
+	output := w.String()
+	// Embedded values
+	if !strings.Contains(output, "version=v3.4.1") {
+		t.Fatal("failed test\n", output)
+	}
+
+	// Files
+	if !strings.Contains(output, fmt.Sprintf(`[U] %s`, filepath.Base(targetFile1))) {
+		t.Fatal("failed test\n", output)
+	}
+	if !strings.Contains(output, fmt.Sprintf(`[U] %s`, targetFile2)) {
+		t.Fatal("failed test\n", output)
+	}
+}
 func TestRun_loadConfigError(t *testing.T) {
 
 	args := []string{}
@@ -231,7 +305,7 @@ func TestRun_loadConfigError(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	if err.Error() != "failed to load the config file: unexpected end of JSON input" {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -276,7 +350,7 @@ func TestRun_valuesError(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	if err.Error() != "argument must be 2 arguments" {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -318,7 +392,7 @@ func TestRun_buildReplaceRulesError(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	if err.Error() != "'version=v[0-9' in embeddeds.regex is an invalid value: error parsing regexp: missing closing ]: `[0-9`" {
 		t.Fatalf("failed test\n%+v", err)
 	}
@@ -361,7 +435,7 @@ func TestRun_replaceError(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	pathErr := errors.Cause(err).(*os.PathError)
 	if pathErr.Path != targetFile1+"xxxx" || pathErr.Op != "open" {
 		t.Fatal("failed test\n", err)
@@ -404,7 +478,7 @@ func TestRun_executeTemplateError(t *testing.T) {
 	defer os.Remove(configFile)
 
 	w := &bytes.Buffer{}
-	err := run(configFile, args, w)
+	err := run(configFile, args, "", w)
 	if err.Error() != "'version=v{{.val1}' in embeddeds.replacement is an invalid value: template: template:1: unexpected \"}\" in operand" {
 		t.Fatalf("failed test\n%+v", err)
 	}

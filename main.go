@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -46,10 +47,12 @@ type ReplaceRule struct {
 func main() {
 
 	var configPath string
+	var targetDirPath string
 	var help bool
 
-	flag.StringVarP(&configPath, "config", "c", "emv.json", "Config file path")
-	flag.BoolVarP(&help, "help", "h", false, "Help")
+	flag.StringVarP(&configPath, "config", "c", "emv.json", "Config file path.")
+	flag.StringVarP(&targetDirPath, "target", "t", "", "The base directory to search for target files. If not specified, it is the same directory as the config file.")
+	flag.BoolVarP(&help, "help", "h", false, "Help.")
 	flag.CommandLine.SortFlags = false
 	flag.Usage = func() {
 		usage(os.Stderr)
@@ -67,7 +70,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	err := run(configPath, flag.Args(), os.Stdout)
+	if targetDirPath == "" {
+		targetDirPath = filepath.Dir(configPath)
+	}
+
+	err := run(configPath, flag.Args(), targetDirPath, os.Stdout)
 	if err != nil {
 		fmt.Println("\nError: ", err)
 		os.Exit(1)
@@ -82,7 +89,7 @@ func usage(w io.Writer) {
 	flag.PrintDefaults()
 }
 
-func run(configPath string, args []string, w io.Writer) error {
+func run(configPath string, args []string, targetDirPath string, w io.Writer) error {
 
 	config, err := loadConfig(configPath)
 	if err != nil {
@@ -108,7 +115,13 @@ func run(configPath string, args []string, w io.Writer) error {
 
 		fmt.Fprintf(w, "Files ([U] Updated, [-] None): \n")
 		for _, file := range target.Files {
-			replaced, err := replace(file, replaceRules)
+
+			targetFile := file
+			if !filepath.IsAbs(targetFile) && targetDirPath != "" {
+				targetFile = filepath.Join(targetDirPath, file)
+			}
+
+			replaced, err := replace(targetFile, replaceRules)
 			if err != nil {
 				return err
 			}
