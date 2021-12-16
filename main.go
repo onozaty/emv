@@ -25,8 +25,8 @@ type Config struct {
 }
 
 type Value struct {
-	Name     string `json:"name"`
-	RegexStr string `json:"regex"`
+	Name    string `json:"name"`
+	Pattern string `json:"pattern"`
 }
 
 type Target struct {
@@ -35,7 +35,7 @@ type Target struct {
 }
 
 type Embedded struct {
-	RegexStr    string `json:"regex"`
+	Pattern     string `json:"pattern"`
 	Replacement string `json:"replacement"`
 }
 
@@ -168,14 +168,14 @@ func buildReplaceRules(embeddeds []Embedded, values map[string]string) ([]Replac
 
 	for _, emembedded := range embeddeds {
 
-		regexp, err := regexp.Compile(emembedded.RegexStr)
+		regexp, err := regexp.Compile(emembedded.Pattern)
 		if err != nil {
-			return nil, errors.Wrapf(err, "'%s' in embeddeds.regex is an invalid value", emembedded.RegexStr)
+			return nil, errors.Wrapf(err, "'%s' in embeddeds-pattern is an invalid value", emembedded.Pattern)
 		}
 
 		replacement, err := executeTemplate(emembedded.Replacement, values)
 		if err != nil {
-			return nil, errors.Wrapf(err, "'%s' in embeddeds.replacement is an invalid value", emembedded.Replacement)
+			return nil, errors.Wrapf(err, "'%s' in embeddeds-replacement is an invalid value", emembedded.Replacement)
 		}
 
 		replaceRules = append(replaceRules, ReplaceRule{
@@ -213,16 +213,16 @@ func values(args []string, valueConfigs []Value) (map[string]string, error) {
 	for i, valueConfig := range valueConfigs {
 		values[valueConfig.Name] = args[i]
 
-		if valueConfig.RegexStr != "" {
+		if valueConfig.Pattern != "" {
 
-			regexp, err := regexp.Compile(valueConfig.RegexStr)
+			regexp, err := regexp.Compile(valueConfig.Pattern)
 			if err != nil {
-				return nil, errors.Wrapf(err, "'%s' in values.regex is an invalid value", valueConfig.RegexStr)
+				return nil, errors.Wrapf(err, "'%s' in values-pattern is an invalid value", valueConfig.Pattern)
 			}
 
 			match := regexp.FindStringSubmatch(args[i])
 			if match == nil {
-				return nil, errors.Errorf("'%s' does not match the regular expression: %s", args[i], valueConfig.RegexStr)
+				return nil, errors.Errorf("'%s' does not match the pattern: %s", args[i], valueConfig.Pattern)
 			}
 
 			for i, name := range regexp.SubexpNames() {

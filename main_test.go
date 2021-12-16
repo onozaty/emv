@@ -37,7 +37,7 @@ func TestRun(t *testing.T) {
 		"values" : [
 			{ 
 				"name" : "version",
-				"regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+				"pattern" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
 			},
 			{
 				"name" : "date"
@@ -51,11 +51,11 @@ func TestRun(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						"pattern" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
 						"replacement" : "version=v{{.version}}"
 					},
 					{
-						"regex" : "date=[0-9\\-]+",
+						"pattern" : "date=[0-9\\-]+",
 						"replacement" : "date={{.date}}"
 					}
 				]
@@ -66,15 +66,15 @@ func TestRun(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "<major>[0-9]+</major>",
+						"pattern" : "<major>[0-9]+</major>",
 						"replacement" : "<major>{{.major}}</major>"
 					},
 					{
-						"regex" : "<minor>[0-9]+</minor>",
+						"pattern" : "<minor>[0-9]+</minor>",
 						"replacement" : "<minor>{{.minor}}</minor>"
 					},
 					{
-						"regex" : "<revision>[0-9]+</revision>",
+						"pattern" : "<revision>[0-9]+</revision>",
 						"replacement" : "<revision>{{.revision}}</revision>"
 					}
 				]
@@ -164,7 +164,7 @@ func TestRun_unchanged(t *testing.T) {
 		"values" : [
 			{ 
 				"name" : "version",
-				"regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+				"pattern" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
 			}
 		],
 		"targets" : [
@@ -175,7 +175,7 @@ func TestRun_unchanged(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						"pattern" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
 						"replacement" : "version=v{{.version}}"
 					}
 				]
@@ -238,7 +238,7 @@ func TestRun_targetDir(t *testing.T) {
 		"values" : [
 			{ 
 				"name" : "version",
-				"regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+				"pattern" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
 			}
 		],
 		"targets" : [
@@ -249,7 +249,7 @@ func TestRun_targetDir(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						"pattern" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
 						"replacement" : "version=v{{.version}}"
 					}
 				]
@@ -337,7 +337,7 @@ func TestRun_valuesError(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+",
+						"pattern" : "version=v[0-9]+",
 						"replacement" : "version=v{{.val1}}"
 					}
 				]
@@ -379,7 +379,7 @@ func TestRun_buildReplaceRulesError(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9",
+						"pattern" : "version=v[0-9",
 						"replacement" : "version=v{{.val1}}"
 					}
 				]
@@ -393,7 +393,7 @@ func TestRun_buildReplaceRulesError(t *testing.T) {
 
 	w := &bytes.Buffer{}
 	err := run(configFile, args, "", w)
-	if err.Error() != "'version=v[0-9' in embeddeds.regex is an invalid value: error parsing regexp: missing closing ]: `[0-9`" {
+	if err.Error() != "'version=v[0-9' in embeddeds-pattern is an invalid value: error parsing regexp: missing closing ]: `[0-9`" {
 		t.Fatalf("failed test\n%+v", err)
 	}
 }
@@ -421,7 +421,7 @@ func TestRun_replaceError(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+",
+						"pattern" : "version=v[0-9]+",
 						"replacement" : "version=v{{.val1}}"
 					}
 				]
@@ -465,7 +465,7 @@ func TestRun_executeTemplateError(t *testing.T) {
 				],
 				"embeddeds" : [
 					{
-						"regex" : "version=v[0-9]+",
+						"pattern" : "version=v[0-9]+",
 						"replacement" : "version=v{{.val1}"
 					}
 				]
@@ -479,7 +479,7 @@ func TestRun_executeTemplateError(t *testing.T) {
 
 	w := &bytes.Buffer{}
 	err := run(configFile, args, "", w)
-	if err.Error() != "'version=v{{.val1}' in embeddeds.replacement is an invalid value: template: template:1: unexpected \"}\" in operand" {
+	if err.Error() != "'version=v{{.val1}' in embeddeds-replacement is an invalid value: template: template:1: unexpected \"}\" in operand" {
 		t.Fatalf("failed test\n%+v", err)
 	}
 }
@@ -521,11 +521,11 @@ func TestBuildReplaceRules(t *testing.T) {
 
 	embeddeds := []Embedded{
 		{
-			RegexStr:    "val1=(.+)",
+			Pattern:     "val1=(.+)",
 			Replacement: "val1={{.val1}}",
 		},
 		{
-			RegexStr:    "val2=(.+)",
+			Pattern:     "val2=(.+)",
 			Replacement: "val2={{.val2}}",
 		},
 	}
@@ -583,8 +583,8 @@ func TestValues(t *testing.T) {
 	}
 	valueConfigs := []Value{
 		{
-			Name:     "version",
-			RegexStr: "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$",
+			Name:    "version",
+			Pattern: "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$",
 		},
 		{
 			Name: "val2",
@@ -616,13 +616,13 @@ func TestValues_invalidRegex(t *testing.T) {
 	}
 	valueConfigs := []Value{
 		{
-			Name:     "version",
-			RegexStr: "^(",
+			Name:    "version",
+			Pattern: "^(",
 		},
 	}
 
 	_, err := values(args, valueConfigs)
-	if err.Error() != "'^(' in values.regex is an invalid value: error parsing regexp: missing closing ): `^(`" {
+	if err.Error() != "'^(' in values-pattern is an invalid value: error parsing regexp: missing closing ): `^(`" {
 		t.Fatalf("failed test\n%+v", err)
 	}
 }
@@ -634,13 +634,13 @@ func TestValues_unmatchRegex(t *testing.T) {
 	}
 	valueConfigs := []Value{
 		{
-			Name:     "version",
-			RegexStr: "^[0-9]+$",
+			Name:    "version",
+			Pattern: "^[0-9]+$",
 		},
 	}
 
 	_, err := values(args, valueConfigs)
-	if err.Error() != "'10.0.3' does not match the regular expression: ^[0-9]+$" {
+	if err.Error() != "'10.0.3' does not match the pattern: ^[0-9]+$" {
 		t.Fatalf("failed test\n%+v", err)
 	}
 }
@@ -652,7 +652,7 @@ func TestLoadConfig(t *testing.T) {
     "values" : [
         { 
             "name" : "version",
-            "regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+            "pattern" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
         },
         {
             "name" : "value2"
@@ -666,7 +666,7 @@ func TestLoadConfig(t *testing.T) {
             ],
             "embeddeds" : [
                 {
-                    "regex" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+                    "pattern" : "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
                     "replacement" : "version=v{{.version}}"
                 }
             ]
@@ -677,15 +677,15 @@ func TestLoadConfig(t *testing.T) {
             ],
             "embeddeds" : [
                 {
-                    "regex" : "<major>[0-9]+</major>",
+                    "pattern" : "<major>[0-9]+</major>",
                     "replacement" : "<major>{{.major}}</major>"
                 },
                 {
-                    "regex" : "<minor>[0-9]+</minor>",
+                    "pattern" : "<minor>[0-9]+</minor>",
                     "replacement" : "<minor>{{.major}}</minor>"
                 },
                 {
-                    "regex" : "<revision>[0-9]+</revision>",
+                    "pattern" : "<revision>[0-9]+</revision>",
                     "replacement" : "<revision>{{.revision}}</revision>"
                 }
             ]
@@ -705,8 +705,8 @@ func TestLoadConfig(t *testing.T) {
 	expect := &Config{
 		Values: []Value{
 			{
-				Name:     "version",
-				RegexStr: "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$",
+				Name:    "version",
+				Pattern: "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$",
 			},
 			{
 				Name: "value2",
@@ -720,7 +720,7 @@ func TestLoadConfig(t *testing.T) {
 				},
 				Embeddeds: []Embedded{
 					{
-						RegexStr:    "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
+						Pattern:     "version=v[0-9]+\\.[0-9]+\\.[0-9]+",
 						Replacement: "version=v{{.version}}",
 					},
 				},
@@ -731,15 +731,15 @@ func TestLoadConfig(t *testing.T) {
 				},
 				Embeddeds: []Embedded{
 					{
-						RegexStr:    "<major>[0-9]+</major>",
+						Pattern:     "<major>[0-9]+</major>",
 						Replacement: "<major>{{.major}}</major>",
 					},
 					{
-						RegexStr:    "<minor>[0-9]+</minor>",
+						Pattern:     "<minor>[0-9]+</minor>",
 						Replacement: "<minor>{{.major}}</minor>",
 					},
 					{
-						RegexStr:    "<revision>[0-9]+</revision>",
+						Pattern:     "<revision>[0-9]+</revision>",
 						Replacement: "<revision>{{.revision}}</revision>",
 					},
 				},
@@ -759,7 +759,7 @@ func TestLoadConfig_invalidFormat(t *testing.T) {
     "value" : [
         { 
             "name" : "version",
-            "regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+            "pattern" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
         }
     ]
 }
