@@ -84,7 +84,7 @@ func main() {
 func usage(w io.Writer) {
 
 	fmt.Fprintf(w, "emv v%s (%s)\n\n", Version, Commit)
-	fmt.Fprintf(w, "Usage: emv [-c CONFIG] VALUE1 VALUE2 ... \n\nFlags\n")
+	fmt.Fprintf(w, "Usage: emv [-c CONFIG] [-t TARGET] VALUE1 ... \n\nFlags\n")
 	flag.CommandLine.SetOutput(w)
 	flag.PrintDefaults()
 }
@@ -108,12 +108,12 @@ func run(configPath string, args []string, targetDirPath string, w io.Writer) er
 			return err
 		}
 
-		fmt.Fprintf(w, "\nEmbedded values: \n")
+		fmt.Fprintf(w, "Embedded values:\n")
 		for _, replaceRule := range replaceRules {
 			fmt.Fprintf(w, "  %s\n", replaceRule.Replacement)
 		}
 
-		fmt.Fprintf(w, "Files ([U] Updated, [-] None): \n")
+		fmt.Fprintf(w, "Files: ([U] Updated, [-] None)\n")
 		for _, file := range target.Files {
 
 			targetFile := file
@@ -135,6 +135,7 @@ func run(configPath string, args []string, targetDirPath string, w io.Writer) er
 
 			fmt.Fprintf(w, "  %s %s\n", changeFlag, file)
 		}
+		fmt.Println()
 	}
 
 	return nil
