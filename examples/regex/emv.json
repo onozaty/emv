@@ -1,0 +1,29 @@
+{
+  "values" : [
+    { 
+      "name" : "version",
+      "regex" : "^(?P<major>[0-9]+)\\.(?P<minor>[0-9]+)\\.(?P<revision>[0-9]+)$"
+    }
+  ],
+  "targets" : [
+    {
+      "files" : [
+        "example.xml"
+      ],
+      "embeddeds" : [
+        {
+          "regex" : "<major>[0-9]+</major>",
+          "replacement" : "<major>{{.major}}</major>"
+        },
+        {
+          "regex" : "<minor>[0-9]+</minor>",
+          "replacement" : "<minor>{{.minor}}</minor>"
+        },
+        {
+          "regex" : "<revision>[0-9]+</revision>",
+          "replacement" : "<revision>{{.revision}}</revision>"
+        }
+      ]
+    }
+  ]
+}
