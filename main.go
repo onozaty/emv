@@ -101,7 +101,11 @@ func run(configPath string, args []string, targetDirPath string, w io.Writer) er
 		return err
 	}
 
-	for _, target := range config.Targets {
+	for i, target := range config.Targets {
+
+		if i != 0 {
+			fmt.Println()
+		}
 
 		replaceRules, err := buildReplaceRules(target.Embeddeds, values)
 		if err != nil {
@@ -135,7 +139,6 @@ func run(configPath string, args []string, targetDirPath string, w io.Writer) er
 
 			fmt.Fprintf(w, "  %s %s\n", changeFlag, file)
 		}
-		fmt.Println()
 	}
 
 	return nil
