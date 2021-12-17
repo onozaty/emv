@@ -11,7 +11,7 @@
       ],
       "embeddeds" : [
         {
-          "regex" : "version=[0-9\\.]+",
+          "pattern" : "version=[0-9\\.]+",
           "replacement" : "version={{.version}}"
         }
       ]
