@@ -1,6 +1,9 @@
 # emv
 
-emv is a CLI tool for embedding specified values in files.
+[![GitHub license](https://img.shields.io/github/license/onozaty/emv)](https://github.com/onozaty/emv/blob/main/LICENSE)
+[![Test](https://github.com/onozaty/emv/actions/workflows/test.yaml/badge.svg)](https://github.com/onozaty/emv/actions/workflows/test.yaml)
+
+`emv` is a CLI tool for embedding specified values in files.
 
 Embeds values in the file based on the rules written in the configuration file.
 
