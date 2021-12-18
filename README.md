@@ -120,7 +120,7 @@ version=2.0.0
 
 * `values` : The definition of the input values to be specified as arguments.
   * `name` : The name to give to the input value. This is the name to use in `replacement`.
-  * `pattern` : Input value pattern. It is specified by a regular expression.<br>By writing a named group, you can name the part and it will be available in `replacement`.
+  * `pattern` : (Optional) Input value pattern. It is specified by a regular expression.<br>By writing a named group, you can name the part and it will be available in `replacement`.
 * `targets` : The definition of the embedding target.
   * `files` : Target files.<br>If you specify a relative path, the default is to use the same directory as the configuration file as the base. The `-t` option can be used to change the base directory.
   * `embeddeds` : The definition of the embedded content.
